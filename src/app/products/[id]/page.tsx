@@ -114,15 +114,17 @@ export default function ProductDetailPage() {
   }, [id])
 
   useEffect(() => {
-    if (!product?.category || !id) return
+    const category = product?.category
+
+    if (!category || !id) return
 
     async function fetchRelated() {
       const supabase = createClient()
+
       const { data } = await supabase
         .from('products')
         .select('id, name, price, image_url, stock, category')
-        .eq('category', product.category)
-        .eq('is_active', true)
+        .eq('category', category)
         .neq('id', id)
         .limit(24)
 
@@ -430,7 +432,6 @@ export default function ProductDetailPage() {
               <p className="text-xs font-semibold uppercase tracking-[4px] text-[#00612E]/60">More from this category</p>
               <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">You may also like</h2>
             </div>
-            
           </div>
 
           {relatedToShow.length === 0 ? (
@@ -470,7 +471,7 @@ export default function ProductDetailPage() {
           )}
         </section>
 
-       <ReviewSection productId={product.id} />
+        <ReviewSection productId={product.id} />
       </div>
     </div>
   )
