@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from 'next/cache'
 import ProductCard from '../app/Productcard'
 import Link from 'next/link'
 import PromoPopup from '../app/Promopopup'
@@ -5,6 +6,10 @@ import { createClient } from './lib/supabase/client'
 import HeroSlideshow from './Herosection/HeroSlideshow'
 import CategorySlideshow from './CategorySlideshow'
 import HeroSection from './Herosection/page'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 type CategoryMeta = {
   slug: string
@@ -64,6 +69,7 @@ async function getCategoryProducts(category: string): Promise<Product[]> {
     .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(PRODUCTS_PER_CATEGORY)
+
   return (data as Product[]) || []
 }
 
@@ -76,10 +82,13 @@ async function getNewestProduct(): Promise<Product | null> {
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
+
   return (data as Product | null) || null
 }
 
 export default async function HomePage() {
+  noStore()
+
   const [topPick, club, retro, national, promoProduct] = await Promise.all([
     getCategoryProducts('top_pick'),
     getCategoryProducts('club'),
@@ -131,22 +140,26 @@ export default async function HomePage() {
 
       <PromoPopup product={promoProduct} />
 
-      {/* Subtle atmosphere glows */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-24 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[#00612E]/10 blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute top-[22rem] -left-20 h-72 w-72 rounded-full bg-[#FDFFE3]/80 blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
-        <div className="absolute top-[38rem] right-0 h-80 w-80 rounded-full bg-[#00612E]/6 blur-3xl animate-pulse" style={{ animationDuration: '12s' }} />
+        <div
+          className="absolute -top-24 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[#00612E]/10 blur-3xl animate-pulse"
+          style={{ animationDuration: '8s' }}
+        />
+        <div
+          className="absolute top-[22rem] -left-20 h-72 w-72 rounded-full bg-[#FDFFE3]/80 blur-3xl animate-pulse"
+          style={{ animationDuration: '10s' }}
+        />
+        <div
+          className="absolute top-[38rem] right-0 h-80 w-80 rounded-full bg-[#00612E]/6 blur-3xl animate-pulse"
+          style={{ animationDuration: '12s' }}
+        />
       </div>
 
       <div className="relative z-10">
-        {/* Keep the two hero sections as they were, only make them responsive */}
         <HeroSection />
-        
 
-        {/* Poster style feature section */}
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-6 sm:mt-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
             {[
               { title: '100% ORIGINAL', sub: 'Premium Quality Jerseys' },
               { title: 'FAST DELIVERY', sub: 'All Over Bangladesh' },
@@ -157,10 +170,8 @@ export default async function HomePage() {
                 key={i}
                 className="group relative rounded-[24px] overflow-hidden bg-white border border-[#00612E]/10 p-6 sm:p-7 flex flex-col justify-between min-h-[160px] sm:min-h-[180px] lg:min-h-[200px] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
               >
-                {/* glow */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 bg-[radial-gradient(circle_at_top,rgba(0,97,46,0.06),transparent_60%)]" />
 
-                {/* content */}
                 <div className="relative z-10">
                   <h3 className="text-lg sm:text-xl font-semibold tracking-tight text-slate-800">
                     {item.title}
@@ -170,20 +181,21 @@ export default async function HomePage() {
                   </p>
                 </div>
 
-                {/* decorative big text */}
                 <div className="absolute bottom-2 right-3 text-[40px] sm:text-[48px] font-black text-[#00612E]/5 select-none pointer-events-none">
                   {item.title.split(' ')[0]}
                 </div>
               </div>
             ))}
-
           </div>
         </div>
 
-        {/* Category sections */}
         <div className="mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8 space-y-14">
           {categoryData.map((cat, idx) => (
-            <section key={cat.slug} className="scroll-mt-24 fade-up" style={{ animationDelay: `${idx * 0.08}s` }}>
+            <section
+              key={cat.slug}
+              className="scroll-mt-24 fade-up"
+              style={{ animationDelay: `${idx * 0.08}s` }}
+            >
               <div className="mb-5">
                 <div className="transition-transform duration-300 hover:-translate-y-0.5 rounded-[28px] overflow-hidden min-h-[260px] sm:min-h-[300px] lg:min-h-[380px]">
                   <CategorySlideshow
@@ -219,11 +231,11 @@ export default async function HomePage() {
                     {cat.products.map((product) => (
                       <div key={product.id} className="transition-transform duration-300 hover:-translate-y-1">
                         <ProductCard
-  product={{
-    ...product,
-    stock: product.stock ?? 0,
-  }}
-/>
+                          product={{
+                            ...product,
+                            stock: product.stock ?? 0,
+                          }}
+                        />
                       </div>
                     ))}
                   </div>

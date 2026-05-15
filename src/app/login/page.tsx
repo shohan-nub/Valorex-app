@@ -14,6 +14,7 @@ function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -25,25 +26,31 @@ function LoginForm() {
     setError('')
     setMessage('')
 
-    if (!email.trim() || !password) {
-      setError('invalid')
+    const cleanEmail = email.trim()
+
+    if (!cleanEmail || !password) {
+      setError('Please enter email and password.')
       return
     }
 
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
         password,
       })
 
       if (error) throw error
 
+      if (!data.session) {
+        throw new Error('Login failed. No session returned.')
+      }
+
       router.push(next)
       router.refresh()
-    } catch {
-      setError('invalid')
+    } catch (err: any) {
+      setError(err?.message || 'Invalid email or password.')
     } finally {
       setLoading(false)
     }
@@ -53,40 +60,53 @@ function LoginForm() {
     setError('')
     setMessage('')
 
-    if (!email.trim()) {
-      setError('reset-email')
+    const cleanEmail = email.trim()
+
+    if (!cleanEmail) {
+      setError('Please enter your email first.')
       return
     }
 
     setResetLoading(true)
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
         redirectTo: `${window.location.origin}/reset-password`,
       })
 
       if (error) throw error
 
       setMessage('Password reset link sent to your email.')
-    } catch {
-      setError('reset-failed')
+    } catch (err: any) {
+      setError(err?.message || 'Could not send reset link.')
     } finally {
       setResetLoading(false)
     }
   }
 
   async function handleGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${next}`,
-      },
-    })
+    setError('')
+    setMessage('')
+    setGoogleLoading(true)
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        },
+      })
+
+      if (error) throw error
+    } catch (err: any) {
+      setError(err?.message || 'Google login failed.')
+      setGoogleLoading(false)
+    }
   }
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4"
+      className="min-h-screen flex items-center justify-center px-4 py-8"
       style={{ background: 'var(--bg)' }}
     >
       <div className="w-full max-w-sm">
@@ -104,12 +124,13 @@ function LoginForm() {
         </div>
 
         <div
-          className="rounded-3xl border p-8 shadow-sm"
+          className="rounded-3xl border p-6 sm:p-8 shadow-sm"
           style={{ background: 'var(--bg-2)', borderColor: 'var(--border)' }}
         >
           <button
             onClick={handleGoogle}
-            className="mb-6 flex w-full items-center justify-center gap-3 rounded-xl border py-3 text-sm font-medium transition hover:opacity-80"
+            disabled={googleLoading || loading || resetLoading}
+            className="mb-6 flex w-full items-center justify-center gap-3 rounded-xl border py-3 text-sm font-medium transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
             style={{
               borderColor: 'var(--border-2)',
               color: 'var(--text-1)',
@@ -134,7 +155,7 @@ function LoginForm() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            {googleLoading ? 'Connecting...' : 'Continue with Google'}
           </button>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -149,6 +170,7 @@ function LoginForm() {
                 borderColor: 'var(--border)',
                 color: 'var(--text-1)',
               }}
+              autoComplete="email"
             />
 
             <div className="space-y-2">
@@ -163,6 +185,7 @@ function LoginForm() {
                   borderColor: 'var(--border)',
                   color: 'var(--text-1)',
                 }}
+                autoComplete="current-password"
               />
 
               <div className="text-right">
@@ -170,6 +193,7 @@ function LoginForm() {
                   type="button"
                   onClick={handleForgotPassword}
                   className="text-[11px] text-gray-500 transition hover:text-green-600"
+                  disabled={loading || googleLoading || resetLoading}
                 >
                   {resetLoading ? 'Sending link...' : 'Forgot Password?'}
                 </button>
@@ -178,15 +202,9 @@ function LoginForm() {
 
             {error && (
               <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-                <div className="mt-0.5 text-red-500 text-lg leading-none">⚠️</div>
+                <div className="mt-0.5 text-lg leading-none text-red-500">⚠️</div>
                 <div>
-                  <p className="text-sm font-semibold text-red-600">
-                    {error === 'reset-email'
-                      ? 'Please enter your email first.'
-                      : error === 'reset-failed'
-                        ? 'Could not send reset link.'
-                        : 'Invalid email or password.'}
-                  </p>
+                  <p className="text-sm font-semibold text-red-600">{error}</p>
                 </div>
               </div>
             )}
@@ -199,8 +217,8 @@ function LoginForm() {
 
             <button
               type="submit"
-              disabled={loading}
-              className="btn-accent w-full rounded-xl py-3 text-sm font-bold transition disabled:opacity-50"
+              disabled={loading || googleLoading || resetLoading}
+              className="btn-accent w-full rounded-xl py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? 'Logging in...' : 'Login'}
             </button>
@@ -209,7 +227,7 @@ function LoginForm() {
           <p className="mt-6 text-center text-sm">
             <span className="text-gray-500">Don't have an account?</span>{' '}
             <Link
-              href={`/signup?next=${next}`}
+              href={`/signup?next=${encodeURIComponent(next)}`}
               className="font-bold text-green-600 hover:underline"
             >
               Sign up

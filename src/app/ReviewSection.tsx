@@ -129,7 +129,7 @@ export default function ReviewSection({ productId }: { productId: string }) {
           <textarea
             value={comment}
             onChange={e => setComment(e.target.value)}
-            placeholder="কি মনে হলো লিখো..."
+            placeholder="Add a Review"
             className="mb-3 w-full rounded border p-2"
           />
 
@@ -145,7 +145,7 @@ export default function ReviewSection({ productId }: { productId: string }) {
 
       {!loading && !canReview && !alreadyReviewed && userId && (
         <p className="mb-4 text-sm text-gray-500">
-          শুধু delivered order হলে review দিতে পারবা
+          
         </p>
       )}
 
